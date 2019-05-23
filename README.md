@@ -1,2 +1,2 @@
-# instagram
-instagram clone in react-native and firebase
+# Instagram
+Instagram clone in react-native and firebase
