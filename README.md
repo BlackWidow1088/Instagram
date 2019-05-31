@@ -1,2 +1,2 @@
 # Instagram
-Instagram clone in react-native and firebase
+Instagram clone in react-native using expo and firebase
