@@ -16,6 +16,16 @@ export default appStyle = StyleSheet.create({
     borderWidth: 1,
     width: 200
   },
+  facebookButton: {
+    backgroundColor: '#3b5998',
+    marginTop: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderColor: '#3b5998',
+    borderWidth: 1,
+    borderRadius: 5,
+    width: 200
+  },
   border: {
     width: '85%',
     margin: 10,

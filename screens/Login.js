@@ -2,14 +2,23 @@ import React from 'react';
 import { Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import firebase from 'firebase';
 
 import appStyle from '../styles/app.js';
-import { updateEmail, updatePassword } from '../store/actions';
-
+import { updateEmail, updatePassword, login, getUser, facebookLogin } from '../store/actions';
 
 class Login extends React.Component {
-    login = () => {
-        if (this.props.user.email) {
+    componentDidMount = () => {
+        firebase.auth().onAuthStateChanged((user) => {
+            if(user) {
+                // now trigger loader screen till the state updates
+                this.props.getUser(user.uid);
+            }
+        })
+    }
+    componentDidUpdate = () => {
+        if(this.props.user.uid) {
+            // stop loading screen and navigate
             this.props.navigation.navigate('HomeRoute');
         }
     }
@@ -29,7 +38,8 @@ class Login extends React.Component {
                     placeholder='Password'
                     secureTextEntry={true}
                 />
-                <Button title='Login' style={appStyle.button} onPress={() => this.login()} />
+                <Button title='Login' style={appStyle.button} onPress={() => this.props.login()} />
+                <Button title='Facebook Login' style={appStyle.button} onPress={() => this.props.facebookLogin()} />
                 <TouchableOpacity style={appStyle.button} onPress={() => this.props.navigation.navigate('SignupRoute')}>
                     <Text>Signup</Text>
                 </TouchableOpacity>
@@ -40,7 +50,7 @@ class Login extends React.Component {
 
 const mapStateToProps = (state) => ({ user: state.user });
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ updateEmail, updatePassword }, dispatch);
+const mapDispatchToProps = (dispatch) => bindActionCreators({ updateEmail, updatePassword, login, getUser, facebookLogin }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Login);
 
