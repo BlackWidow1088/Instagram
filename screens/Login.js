@@ -2,22 +2,22 @@ import React from 'react';
 import { Text, View, TextInput, TouchableOpacity, Button } from 'react-native';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import firebase from 'firebase';
 
+import firebase from '../config/firebase';
 import appStyle from '../styles/app.js';
-import { updateEmail, updatePassword, login, getUser, facebookLogin } from '../store/actions';
+import { updateEmail, updatePassword, login, getUser, facebookLogin } from '../store/actions/user';
 
 class Login extends React.Component {
     componentDidMount = () => {
         firebase.auth().onAuthStateChanged((user) => {
-            if(user) {
+            if (user) {
                 // now trigger loader screen till the state updates
                 this.props.getUser(user.uid);
             }
         })
     }
     componentDidUpdate = () => {
-        if(this.props.user.uid) {
+        if (this.props.user.uid) {
             // stop loading screen and navigate
             this.props.navigation.navigate('HomeRoute');
         }

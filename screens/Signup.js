@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import appStyle from '../styles/app.js';
-import { updateEmail, updatePassword, updateUsername, updateBio, signup } from '../store/actions';
+import { updateEmail, updatePassword, updateUsername, updateBio, signup } from '../store/actions/user';
 
 
 class Signup extends React.Component {
@@ -13,14 +13,14 @@ class Signup extends React.Component {
         this.props.signup();
     }
     componentDidUpdate = () => {
-        if(this.props.user.uid) {
+        if (this.props.user.uid) {
             // stop loading screen and navigate
             this.props.navigation.navigate('HomeRoute');
         }
     }
     render() {
         return (
-            <View style={appStyle.container}> 
+            <View style={appStyle.container}>
                 <TextInput
                     style={appStyle.border}
                     value={this.props.user.email}
@@ -45,8 +45,8 @@ class Signup extends React.Component {
                     onChangeText={(input) => this.props.updateBio(input)}
                     placeholder='Bio'
                 />
-                <TouchableOpacity 
-                style={appStyle.button} onPress={() => this.signup()}>
+                <TouchableOpacity
+                    style={appStyle.button} onPress={() => this.signup()}>
                     <Text>Signup</Text>
                 </TouchableOpacity>
             </View>
@@ -56,8 +56,8 @@ class Signup extends React.Component {
 
 const mapStateToProps = (state) => ({ user: state.user });
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ 
-    updateEmail, updatePassword, updateUsername, updateBio, signup 
+const mapDispatchToProps = (dispatch) => bindActionCreators({
+    updateEmail, updatePassword, updateUsername, updateBio, signup
 }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Signup);

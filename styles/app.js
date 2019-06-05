@@ -1,4 +1,5 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+const width = Dimensions.get('window').width;
 
 export default appStyle = StyleSheet.create({
   container: {
@@ -7,13 +8,20 @@ export default appStyle = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  center: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  row: {
+    flexDirection: 'row'
+  },
   button: {
     marginTop: 20,
     paddingVertical: 10,
     alignItems: 'center',
     borderColor: '#d3d3d3',
-    borderRadius: 5,
     borderWidth: 1,
+    borderRadius: 5,
     width: 200
   },
   facebookButton: {
@@ -34,5 +42,27 @@ export default appStyle = StyleSheet.create({
     borderColor: '#d3d3d3',
     borderBottomWidth: 1,
     textAlign: 'center'
+  },
+  postPhoto: {
+    height: 250,
+    width: width,
+  },
+  profilePhoto: {
+    height: 150,
+    width: 150,
+  },
+  roundImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    margin: 5
+  },
+  cameraButton: {
+    height: 100,
+    width: 100,
+    borderRadius: 50,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    marginBottom: 50
   }
 });

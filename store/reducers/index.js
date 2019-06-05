@@ -19,6 +19,41 @@ const user = (state = {}, action) => {
     }
 }
 
+const post = (state = {}, action) => {
+    switch (action.type) {
+        case 'UPDATE_DESCRIPTION':
+            return { ...state, description: action.payload };
+        case 'GET_POSTS':
+            if (state && state.feed) {
+                return { ...state, feed: [...state.feed, ...action.payload] };
+            }
+            return { ...state, feed: action.payload };
+        case 'ADD_POST':
+            if (state && state.feed) {
+                return { ...state, feed: [...state.feed, action.payload] };
+            }
+            return { ...state, feed: [action.payload] };
+        case 'UPDATE_PHOTO':
+            return { ...state, photo: action.payload };
+        case 'UPDATE_LOCATION':
+            return { ...state, location: action.payload };
+        default:
+            return state;
+    }
+}
+const modal = (state = null, action) => {
+    switch (action.type) {
+        case 'OPEN_MODAL':
+            return { ...state, modal: action.payload }
+        case 'CLOSE_MODAL':
+            return { ...state, modal: false }
+        default:
+            return state
+    }
+}
+
 export default combineReducers({
-     user
+    user,
+    post,
+    modal
 });

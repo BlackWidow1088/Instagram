@@ -20,7 +20,6 @@ export const updateBio = (bio) => {
     return { type: 'UPDATE_BIO', payload: bio }
 }
 
-
 // need to study on how multi type works: 1) we can return object 2) return async/ sync function and dispatch action object or another 
 // function
 export const login = () => {
