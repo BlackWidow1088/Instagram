@@ -12,6 +12,10 @@ const user = (state = {}, action) => {
             return { ...state, bio: action.payload };
         case 'LOGIN':
             return action.payload
+        case 'UPDATE_PHOTO':
+            return { ...state, photo: action.payload };
+        case 'GET_TOKEN':
+            return { ...state, token: action.payload }
         case 'SIGNOUT':
             return {};
         default:
@@ -24,21 +28,36 @@ const post = (state = {}, action) => {
         case 'UPDATE_DESCRIPTION':
             return { ...state, description: action.payload };
         case 'GET_POSTS':
-            if (state && state.feed) {
-                return { ...state, feed: [...state.feed, ...action.payload] };
-            }
             return { ...state, feed: action.payload };
         case 'ADD_POST':
             if (state && state.feed) {
                 return { ...state, feed: [...state.feed, action.payload] };
             }
             return { ...state, feed: [action.payload] };
-        case 'UPDATE_PHOTO':
-            return { ...state, photo: action.payload };
+        case 'UPDATE_POST_PHOTO':
+            return { ...state, postPhoto: action.payload };
         case 'UPDATE_LOCATION':
             return { ...state, location: action.payload };
+        case 'GET_COMMENTS':
+            return { ...state, comments: action.payload };
         default:
             return state;
+    }
+}
+const profile = (state = {}, action) => {
+    switch (action.type) {
+        case 'GET_PROFILE':
+            return action.payload
+        default:
+            return state
+    }
+}
+const messages = (state = {}, action) => {
+    switch (action.type) {
+        case 'GET_MESSAGES':
+            return action.payload
+        default:
+            return state
     }
 }
 const modal = (state = null, action) => {
@@ -55,5 +74,7 @@ const modal = (state = null, action) => {
 export default combineReducers({
     user,
     post,
+    profile,
+    messages,
     modal
 });

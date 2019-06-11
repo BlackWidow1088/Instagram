@@ -1,8 +1,10 @@
 import { Alert } from 'react-native';
 import { Facebook } from 'expo';
+import orderBy from 'lodash/orderBy';
 
 import firebase from '../../config/firebase';
 import { ENV } from '../../env';
+import { allowNotifications, sendNotification } from '../actions';
 
 export const updateEmail = (email) => {
     return { type: 'UPDATE_EMAIL', payload: email }
@@ -20,6 +22,10 @@ export const updateBio = (bio) => {
     return { type: 'UPDATE_BIO', payload: bio }
 }
 
+export const updatePhoto = (photo) => {
+    return { type: 'UPDATE_PHOTO', payload: photo }
+}
+
 // need to study on how multi type works: 1) we can return object 2) return async/ sync function and dispatch action object or another 
 // function
 export const login = () => {
@@ -29,6 +35,7 @@ export const login = () => {
             const response = await firebase.auth().signInWithEmailAndPassword(email, password);
             if (response.user.uid) {
                 dispatch(getUser(response.user.uid));
+                dispatch(allowNotifications());
             }
         } catch (error) {
             Alert.alert(
@@ -68,16 +75,20 @@ export const facebookLogin = () => {
                             email: response.user.email,
                             username: response.user.displayName,
                             bio: '',
-                            photo: response.user.photoURL
+                            photo: response.user.photoURL,
+                            token: null,
+                            followers: [],
+                            following: []
                         };
                         await firebase.firestore().collection('users').doc(response.user.uid).set(user);
+                        dispatch(allowNotifications());
                         dispatch({ type: 'LOGIN', payload: user });
                     }
                 }
             }
         } catch (error) {
             Alert.alert(
-                'Login Error',
+                'Facebook Login Error',
                 error.message,
                 [
                     { text: 'OK', onPress: () => console.log('OK Pressed') },
@@ -88,20 +99,50 @@ export const facebookLogin = () => {
     }
 }
 // best practice: handle the exception related to this function in this function itself
-export const getUser = (uid) => {
+export const getUser = (uid, type) => {
     return async (dispatch, getState) => {
         try {
-            const user = await firebase.firestore().collection('users').doc(uid).get();
-            dispatch({ type: 'LOGIN', payload: user.data() });
+            const userQuery = await firebase.firestore().collection('users').doc(uid).get();
+            const user = userQuery.data();
+            let posts = []
+            const postsQuery = await firebase.firestore().collection('posts').where('uid', '==', uid).get()
+            postsQuery.forEach(function (response) {
+                posts.push(response.data())
+            })
+            user.posts = orderBy(posts, 'date', 'desc')
+
+            if (type === 'LOGIN') {
+                dispatch({ type: 'LOGIN', payload: user })
+            } else {
+                dispatch({ type: 'GET_PROFILE', payload: user })
+            }
         } catch (error) {
             Alert.alert(
-                'Login Error',
+                'User not found error',
                 error.message,
                 [
                     { text: 'OK', onPress: () => console.log('OK Pressed') },
                 ],
                 { cancelable: false },
             );
+        }
+    }
+}
+
+export const updateUser = () => {
+    return async (dispatch, getState) => {
+        const { uid, username, bio, photo } = getState().user
+        try {
+            firebase.firestore().collection('users').doc(uid).update({
+                username: username,
+                bio: bio,
+                photo: photo
+            });
+            updateUsername(username);
+            updateBio(bio);
+            updatePhoto(photo);
+        } catch (e) {
+            alert(e)
         }
     }
 }
@@ -117,7 +158,10 @@ export const signup = () => {
                     email: email,
                     username: username,
                     bio: bio ? bio : '',
-                    photo: ''
+                    photo: '',
+                    token: null,
+                    followers: [],
+                    following: []
                 };
                 await firebase.firestore().collection('users').doc(response.user.uid).set(user);
                 dispatch({ type: 'LOGIN', payload: user })
@@ -136,10 +180,10 @@ export const signup = () => {
 }
 
 export const signout = () => {
-    return (dispatch, getState) => {
+    return async (dispatch, getState) => {
         try {
-            const response = firebase.auth().signOut();
-            dispatch({ type: 'SIGNOUT', payload: null });
+            const response = await firebase.auth().signOut();
+            dispatch({ type: 'SIGNOUT' });
         } catch (error) {
             Alert.alert(
                 'Signout Error',
@@ -150,4 +194,49 @@ export const signout = () => {
             );
         }
     };
+}
+
+export const followUser = (user) => {
+    return async (dispatch, getState) => {
+        const { uid, photo, username } = getState().user
+        try {
+            firebase.firestore().collection('users').doc(user.uid).update({
+                followers: firebase.firestore.FieldValue.arrayUnion(uid)
+            })
+            firebase.firestore().collection('users').doc(uid).update({
+                following: firebase.firestore.FieldValue.arrayUnion(user.uid)
+            })
+            firebase.firestore().collection('activity').doc().set({
+                followerId: uid,
+                followerPhoto: photo,
+                followerName: username,
+                uid: user.uid,
+                photo: user.photo,
+                username: user.username,
+                date: new Date().getTime(),
+                type: 'FOLLOWER',
+            })
+            dispatch(sendNotification(user.uid, 'Started Following You'))
+            dispatch(getUser(user.uid))
+        } catch (e) {
+            console.error(e)
+        }
+    }
+}
+
+export const unfollowUser = (user) => {
+    return async (dispatch, getState) => {
+        const { uid, photo, username } = getState().user
+        try {
+            firebase.firestore().collection('users').doc(user.uid).update({
+                followers: firebase.firestore.FieldValue.arrayRemove(uid)
+            })
+            firebase.firestore().collection('users').doc(uid).update({
+                following: firebase.firestore.FieldValue.arrayRemove(user.uid)
+            })
+            dispatch(getUser(user.uid))
+        } catch (e) {
+            console.error(e)
+        }
+    }
 }

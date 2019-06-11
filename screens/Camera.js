@@ -5,8 +5,8 @@ import { SafeAreaView, TouchableOpacity } from 'react-native';
 import { Camera, Permissions, ImageManipulator } from 'expo';
 import { connect } from 'react-redux'
 
-import { updatePhoto, uploadPhoto } from '../store/actions/post';
-
+import { updatePostPhoto } from '../store/actions/post';
+import { uploadPhoto } from '../store/actions';
 class CameraUpload extends React.Component {
 
   snapPhoto = async () => {
@@ -16,7 +16,7 @@ class CameraUpload extends React.Component {
       if (!image.cancelled) {
         const resize = await ImageManipulator.manipulateAsync(image.uri, [], { format: 'jpg', compress: 0.1 })
         const url = await this.props.dispatch(uploadPhoto(resize))
-        this.props.dispatch(updatePhoto(url))
+        this.props.dispatch(updatePostPhoto(url))
         url ? this.props.navigation.navigate('Post') : null
       }
     }
@@ -37,7 +37,7 @@ class CameraUpload extends React.Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({ uploadPhoto, updatePhoto }, dispatch)
+  return bindActionCreators({ uploadPhoto, updatePostPhoto }, dispatch)
 }
 
 const mapStateToProps = (state) => {

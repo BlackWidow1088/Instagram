@@ -1,13 +1,13 @@
 import React from 'react';
-import { Text, View, TextInput, TouchableOpacity, Image, FlatList, Modal, SafeAreaView, } from 'react-native';
+import { Text, View, TextInput, TouchableOpacity, Image, FlatList, Modal, SafeAreaView } from 'react-native';
+import { NavigationEvents } from 'react-navigation';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Location, Permissions, IntentLauncherAndroid } from 'expo';
 
 import appStyle from '../styles/app.js';
-import { updateDescription, uploadPost, updateLocation } from '../store/actions/post';
-import { ENV } from '../env';
-const GOOGLE_API = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+import { updatePostPhoto, updateDescription, uploadPost, updateLocation } from '../store/actions/post';
+import { uploadPhoto } from '../store/actions';
+import MobileService from '../services/mobile-service';
 
 class Post extends React.Component {
   state = {
@@ -33,29 +33,26 @@ class Post extends React.Component {
   }
 
   getLocations = async () => {
-    try {
-      this.setState({ showModal: true })
-      const permission = await Permissions.askAsync(Permissions.LOCATION)
-      if (permission.status === 'granted') {
-        if (!await Location.hasServicesEnabledAsync()) {
-          await IntentLauncherAndroid.startActivityAsync(
-            IntentLauncherAndroid.ACTION_LOCATION_SOURCE_SETTINGS
-          );
-        }
-        const location = await Location.getCurrentPositionAsync()
-        const url = `${GOOGLE_API}?location=${location.coords.latitude},${location.coords.longitude}&rankby=distance&key=${ENV.googleApiKey}`
-        const response = await fetch(url)
-        const data = await response.json()
-        this.setState({ locations: data.results })
+    // show loader
+    const locationData = await MobileService.getLocations();
+    // hide loader
+    this.setState({ showModal: locationData ? true : false, locations: locationData });
+  }
+  onWillFocus = async () => {
+    if (!this.props.post.postPhoto) {
+      const image = await MobileService.openLibrary();
+      if (image) {
+        const url = await this.props.uploadPhoto(image)
+        this.props.updatePostPhoto(url)
       }
-    } catch (error) {
-      console.log('error in post ', error);
     }
   }
   render() {
     return (
       <View style={appStyle.container}>
-        <Modal animationType='slide' transparent={false} visible={this.state.showModal}>
+        <NavigationEvents onWillFocus={this.onWillFocus} />
+        <Modal animationType='slide' transparent={false} visible={this.state.showModal}
+          onRequestClose={() => this.setState({ showModal: false })}>
           <SafeAreaView style={[appStyle.container, appStyle.center]}>
             <FlatList
               keyExtractor={(item) => item.id}
@@ -68,7 +65,7 @@ class Post extends React.Component {
               )} />
           </SafeAreaView>
         </Modal>
-        <Image style={appStyle.postPhoto} source={{ uri: this.props.post.photo }} />
+        <Image style={appStyle.postPhoto} source={{ uri: this.props.post.postPhoto }} />
         <TextInput
           style={appStyle.border}
           value={this.props.post.description}
@@ -90,7 +87,7 @@ const mapStateToProps = (state) => ({
   post: state.post
 });
 
-const mapDispatchToProps = (dispatch) => bindActionCreators({ updateDescription, uploadPost, updateLocation }, dispatch);
+const mapDispatchToProps = (dispatch) => bindActionCreators({ uploadPhoto, updatePostPhoto, updateDescription, uploadPost, updateLocation }, dispatch);
 
 export default connect(mapStateToProps, mapDispatchToProps)(Post);
 
