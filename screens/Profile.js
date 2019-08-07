@@ -3,11 +3,21 @@ import { Text, View, Image, TouchableOpacity, FlatList, ActivityIndicator } from
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import { signout } from '../store/actions/user';
+import { signout, getUser } from '../store/actions/user';
 import appStyle from '../styles/app.js';
 import { followUser, unfollowUser } from '../store/actions/user'
+import { getUserPosts } from '../store/actions/user';
 
 class Profile extends React.Component {
+  componentWillMount = () => {
+    const uid = this.props.navigation.getParam('uid', null);
+    if (uid) {
+      this.props.getUser(uid);
+      this.props.getUserPosts('Profile');
+    } else {
+      this.props.getUserPosts('LOGIN');
+    }
+  }
   follow = (user) => {
     if (user.followers.indexOf(this.props.user.uid) >= 0) {
       this.props.unfollowUser(user)
@@ -35,7 +45,6 @@ class Profile extends React.Component {
     } else {
       user = this.props.user
     }
-    if (!user.posts) return <ActivityIndicator style={appStyle.container} />
     return (
       <View style={[appStyle.container, appStyle.center]}>
         <View style={[appStyle.row, appStyle.space, { paddingHorizontal: 20 }]}>
@@ -45,7 +54,10 @@ class Profile extends React.Component {
             <Text>{user.bio}</Text>
           </View>
           <View style={appStyle.center}>
-            <Text style={appStyle.bold}>{user.posts.length}</Text>
+            {
+             user.posts ? <Text style={appStyle.bold}>{user.posts.length}</Text>
+             :<Text style={appStyle.bold}>{0}</Text>
+            }
             <Text>posts</Text>
           </View>
           <View style={appStyle.center}>
@@ -91,7 +103,7 @@ class Profile extends React.Component {
 }
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({ followUser, unfollowUser, signout }, dispatch)
+  return bindActionCreators({ getUser, followUser, unfollowUser, signout, getUserPosts }, dispatch)
 }
 
 const mapStateToProps = (state) => {

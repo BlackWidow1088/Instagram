@@ -4,6 +4,7 @@ import { Permissions, ImageManipulator, Notifications } from 'expo';
 const PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send'
 
 import firebase from '../../config/firebase';
+import StorageService from '../../services/storage-service';
 
 export const uploadPhoto = (image) => {
   return async (dispatch) => {
@@ -64,6 +65,21 @@ export const sendNotification = (uid, text) => {
       }
     } catch (e) {
       console.error(e)
+    }
+  }
+}
+
+export const getLocalStorage = () => {
+  return async (dispatch) => {
+    try {
+      const { user, post } = await StorageService.getStorage();
+      console.log('user ', user)
+      dispatch({ type: 'LOGIN', payload: user ? user : {} });
+      dispatch({ type: 'GET_POSTS', payload: post ? post : {} });
+    } catch (err) {
+      dispatch({ type: 'LOGIN', payload: {} });
+      dispatch({ type: 'GET_POSTS', payload: {} });
+      console.log('error in loading local data')
     }
   }
 }

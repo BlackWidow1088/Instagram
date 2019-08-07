@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, TextInput, TouchableOpacity, Image } from 'react-native';
+import { ActivityIndicator, Text, View, TextInput, TouchableOpacity, Image } from 'react-native';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -8,37 +8,41 @@ import appStyle from '../styles/app.js';
 import { updateEmail, updatePassword, login, getUser, facebookLogin } from '../store/actions/user';
 
 
-import { Permissions, ImageManipulator, Notifications } from 'expo';
-const PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send'
-
 class Login extends React.Component {
-    componentDidMount = async () => {
+    state = { loading: false };
+    componentWillMount = async () => {
         // below firebase authentication is offline, as the firebase checks for the timestamp expiry token
         // for returning user. So the function returns user even if the app is offline
         // So test case: keep the network offline and check the flow.
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                // now trigger loader screen till the state updates
-                this.props.getUser(user.uid, 'LOGIN')
-            }
-        }, (error) => {
-            Alert.alert(
-                'Login Error',
-                error.message,
-                [
-                    { text: 'OK', onPress: () => console.log('OK Pressed') },
-                ],
-                { cancelable: false },
-            );
-        })
+        // firebase.auth().onAuthStateChanged((user) => {
+        //     if (user) {
+        //         console.log('user ', user);
+        //         // now trigger loader screen till the state updates
+        //         this.props.getUser(user.uid, 'LOGIN');
+        //         this.props.navigation.navigate('HomeRoute');
+        //     }
+        // }, (error) => {
+        //     Alert.alert(
+        //         'Login Error',
+        //         error.message,
+        //         [
+        //             { text: 'OK', onPress: () => console.log('OK Presse d') },
+        //         ],
+        //         { cancelable: false },
+        //     );
+        // }, () => this.setState({ loading: false }));
     }
     componentDidUpdate = () => {
+        console.log('user data in login ', this.props.user);
         if (this.props.user.uid) {
-            // stop loading screen and navigate
+            console.log('triggering in home comp');
             this.props.navigation.navigate('HomeRoute');
         }
     }
     render() {
+        if (this.state.loading) {
+            return (<ActivityIndicator style={appStyle.container} />);
+        }
         return (
             <View style={[appStyle.container, appStyle.center]}>
                 <Image style={{ width: 300, height: 100 }} source={require('../assets/instagram.jpg')} />
@@ -55,10 +59,14 @@ class Login extends React.Component {
                     placeholder='Password'
                     secureTextEntry={true}
                 />
-                <TouchableOpacity style={appStyle.button} onPress={() => this.props.login()}>
+                <TouchableOpacity style={appStyle.button} onPress={() => {
+                    this.props.login(); this.setState({ loading: true });
+                }}>
                     <Text>Login</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={appStyle.facebookButton} onPress={() => this.props.facebookLogin()}>
+                <TouchableOpacity style={appStyle.facebookButton} onPress={() => {
+                    this.props.facebookLogin(); this.setState({ loading: true });
+                }}>
                     <Text style={appStyle.white}>Facebook Login</Text>
                 </TouchableOpacity>
                 <Text style={{ margin: 20 }}>OR</Text>

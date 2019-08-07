@@ -5,6 +5,7 @@ import orderBy from 'lodash/orderBy'
 
 import firebase from '../../config/firebase';
 import { sendNotification } from './'
+import StorageService from '../../services/storage-service';
 
 // TODO: implement redo functionality so that we can implement the network call after making local changes. 
 // even if the network call fails, the local changes can be reverted back
@@ -15,6 +16,7 @@ export const updateDescription = (descr) => {
 
 export const updatePostPhoto = (input) => {
   return { type: 'UPDATE_POST_PHOTO', payload: input }
+
 }
 
 export const updateLocation = (input) => {
@@ -37,8 +39,9 @@ export const uploadPost = () => {
         likes: [],
         comments: []
       };
-      await firebase.firestore().collection('posts').doc(id).set(userPost);
       dispatch({ type: 'ADD_POST', payload: userPost });
+      await StorageService.setPosts(getState().post);
+      await firebase.firestore().collection('posts').doc(id).set(userPost);
     } catch (error) {
       Alert.alert(
         'Post Upload Error',
@@ -59,6 +62,7 @@ export const getPosts = () => {
       let array = [];
       posts.forEach(post => array.push(post.data()));
       dispatch({ type: 'GET_POSTS', payload: array });
+      await StorageService.setPosts(array);
     } catch (error) {
       Alert.alert(
         'Get all Posts Error',
@@ -72,8 +76,26 @@ export const getPosts = () => {
   }
 }
 
+export const loadPosts = () => {
+  return async (dispatch, getState) => {
+    try {
+      const posts = await StorageService.getPosts();
+      dispatch({ type: 'GET_POSTS', payload: posts.feed });
+    } catch (error) {
+      Alert.alert(
+        'Loading Posts Error',
+        error.message,
+        [
+          { text: 'OK', onPress: () => console.log('OK Pressed') },
+        ],
+        { cancelable: false },
+      );
+    }
+  }
+}
+
 export const likePost = (post) => {
-  return (dispatch, getState) => {
+  return async (dispatch, getState) => {
     const { uid, username, photo } = getState().user
     try {
       const feed = getState().post.feed;
@@ -83,10 +105,13 @@ export const likePost = (post) => {
           break;
         }
       }
-      firebase.firestore().collection('posts').doc(post.id).update({
+      dispatch({ type: 'GET_POSTS', payload: [...feed] });
+      const posts = getState().post;
+      await StorageService.setPosts(posts);
+      await firebase.firestore().collection('posts').doc(post.id).update({
         likes: firebase.firestore.FieldValue.arrayUnion(uid)
       })
-      firebase.firestore().collection('activity').doc().set({
+      await firebase.firestore().collection('activity').doc().set({
         postId: post.id,
         postPhoto: post.postPhoto,
         likerId: uid,
@@ -98,8 +123,7 @@ export const likePost = (post) => {
       });
 
       // change reference of the object to see changes in DOM
-      dispatch(sendNotification(uid, 'Liked Your Photo'))
-      dispatch({ type: 'GET_POSTS', payload: [...feed] })
+      dispatch(sendNotification(post.uid, 'Liked Your Photo'))
     } catch (e) {
       console.error(e)
     }
@@ -110,13 +134,6 @@ export const unlikePost = (post) => {
   return async (dispatch, getState) => {
     const { uid } = getState().user
     try {
-      firebase.firestore().collection('posts').doc(post.id).update({
-        likes: firebase.firestore.FieldValue.arrayRemove(uid)
-      })
-      const query = await firebase.firestore().collection('activity').where('postId', '==', post.id).where('likerId', '==', uid).get()
-      query.forEach((response) => {
-        response.ref.delete()
-      });
       const feed = getState().post.feed;
       const postLikes = feed.filter(item => item.id === post.id)[0].likes;
       const index = postLikes.indexOf(uid);
@@ -124,6 +141,15 @@ export const unlikePost = (post) => {
         postLikes.splice(index, 1);
       }
       dispatch({ type: 'GET_POSTS', payload: [...feed] })
+      const posts = getState().post;
+      await StorageService.setPosts(posts);
+      await firebase.firestore().collection('posts').doc(post.id).update({
+        likes: firebase.firestore.FieldValue.arrayRemove(uid)
+      })
+      const query = await firebase.firestore().collection('activity').where('postId', '==', post.id).where('likerId', '==', uid).get()
+      query.forEach((response) => {
+        response.ref.delete()
+      });
     } catch (e) {
       console.error(e)
     }
@@ -135,7 +161,7 @@ export const getComments = (post) => (
 )
 
 export const addComment = (text, post) => {
-  return (dispatch, getState) => {
+  return async (dispatch, getState) => {
     const { uid, photo, username } = getState().user
     let comments = getState().post.comments.reverse();
     try {
@@ -146,16 +172,12 @@ export const addComment = (text, post) => {
         commenterName: username,
         date: new Date().getTime(),
       }
-      firebase.firestore().collection('posts').doc(post.id).update({
-        comments: firebase.firestore.FieldValue.arrayUnion(comment)
-      })
       comment.postId = post.id
       comment.postPhoto = post.postPhoto
       comment.uid = post.uid
       comment.type = 'COMMENT'
       comments.push(comment);
       comments.reverse();
-      firebase.firestore().collection('activity').doc().set(comment);
 
       const feed = getState().post.feed;
       for (let i = 0; i < feed.length; i++) {
@@ -164,9 +186,14 @@ export const addComment = (text, post) => {
           break;
         }
       }
-      dispatch(sendNotification(post.uid, text))
       dispatch({ type: 'GET_COMMENTS', payload: [...comments] });
       dispatch({ type: 'GET_POSTS', payload: [...feed] })
+      await StorageService.setPosts(getState().post);
+      await firebase.firestore().collection('posts').doc(post.id).update({
+        comments: firebase.firestore.FieldValue.arrayUnion(comment)
+      })
+      await firebase.firestore().collection('activity').doc().set(comment);
+      dispatch(sendNotification(post.uid, text))
     } catch (e) {
       console.error(e)
     }

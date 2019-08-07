@@ -5,6 +5,7 @@ import orderBy from 'lodash/orderBy';
 import firebase from '../../config/firebase';
 import { ENV } from '../../env';
 import { allowNotifications, sendNotification } from '../actions';
+import StorageService from '../../services/storage-service';
 
 export const updateEmail = (email) => {
     return { type: 'UPDATE_EMAIL', payload: email }
@@ -68,7 +69,10 @@ export const facebookLogin = () => {
                 if (response.user.uid) {
                     let user = await firebase.firestore().collection('users').doc(response.user.uid).get();
                     if (user.exists) {
-                        dispatch({ type: 'LOGIN', payload: user.data() });
+                        const data = user.data();
+                        dispatch({ type: 'LOGIN', payload: data });
+                        console.log('facebook login ', data)
+                        await StorageService.setUser(data);
                     } else {
                         user = {
                             uid: response.user.uid,
@@ -83,6 +87,7 @@ export const facebookLogin = () => {
                         await firebase.firestore().collection('users').doc(response.user.uid).set(user);
                         dispatch(allowNotifications());
                         dispatch({ type: 'LOGIN', payload: user });
+                        await StorageService.setUser(user);
                     }
                 }
             }
@@ -104,15 +109,9 @@ export const getUser = (uid, type) => {
         try {
             const userQuery = await firebase.firestore().collection('users').doc(uid).get();
             const user = userQuery.data();
-            let posts = []
-            const postsQuery = await firebase.firestore().collection('posts').where('uid', '==', uid).get()
-            postsQuery.forEach(function (response) {
-                posts.push(response.data())
-            })
-            user.posts = orderBy(posts, 'date', 'desc')
-
             if (type === 'LOGIN') {
-                dispatch({ type: 'LOGIN', payload: user })
+                dispatch({ type: 'LOGIN', payload: user });
+                await StorageService.setUser(user);
             } else {
                 dispatch({ type: 'GET_PROFILE', payload: user })
             }
@@ -129,6 +128,30 @@ export const getUser = (uid, type) => {
     }
 }
 
+export const getUserPosts = (type) => {
+    return async (dispatch, getState) => {
+        let user = {};
+        if(type === 'LOGIN') {
+            user = getState().user;
+        } else {
+            user = getState().profile;
+        }
+        let posts = []
+        const postsQuery = await firebase.firestore().collection('posts').where('uid', '==', user.uid).get()
+        postsQuery.forEach(function (response) {
+            posts.push(response.data())
+        })
+        user.posts = orderBy(posts, 'date', 'desc');
+
+        if (type === 'LOGIN') {
+            dispatch({ type: 'LOGIN', payload: user });
+            await StorageService.setUser(user);
+        } else {
+            dispatch({ type: 'GET_PROFILE', payload: user })
+        }
+    }
+}
+
 export const updateUser = () => {
     return async (dispatch, getState) => {
         const { uid, username, bio, photo } = getState().user
@@ -141,6 +164,8 @@ export const updateUser = () => {
             updateUsername(username);
             updateBio(bio);
             updatePhoto(photo);
+            dispatch({ type: 'LOGIN', payload: getState().user });
+            await StorageService.setUser(getState().user);
         } catch (e) {
             alert(e)
         }
@@ -164,7 +189,8 @@ export const signup = () => {
                     following: []
                 };
                 await firebase.firestore().collection('users').doc(response.user.uid).set(user);
-                dispatch({ type: 'LOGIN', payload: user })
+                dispatch({ type: 'LOGIN', payload: user });
+                await StorageService.setUser(user);
             }
         } catch (error) {
             Alert.alert(
@@ -184,6 +210,7 @@ export const signout = () => {
         try {
             const response = await firebase.auth().signOut();
             dispatch({ type: 'SIGNOUT' });
+            await StorageService.clearStorage();
         } catch (error) {
             Alert.alert(
                 'Signout Error',

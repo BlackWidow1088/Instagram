@@ -1,15 +1,16 @@
 import React from 'react';
 import appStyle from '../styles/app';
 import { Ionicons } from '@expo/vector-icons'
-import { SafeAreaView, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Camera, Permissions, ImageManipulator } from 'expo';
 import { connect } from 'react-redux'
 
 import { updatePostPhoto } from '../store/actions/post';
 import { uploadPhoto } from '../store/actions';
 class CameraUpload extends React.Component {
-
+  state = { loading: false };
   snapPhoto = async () => {
+    this.setState({loading: true});
     const { status } = await Permissions.askAsync(Permissions.CAMERA)
     if (status === 'granted') {
       const image = await this.camera.takePictureAsync()
@@ -23,7 +24,8 @@ class CameraUpload extends React.Component {
   }
 
   render() {
-    return (
+    return this.state.loading ? (<ActivityIndicator style={appStyle.container}></ActivityIndicator>) :
+    (
       <Camera style={{ flex: 1 }} ref={ref => { this.camera = ref }} type={Camera.Constants.Type.back}>
         <SafeAreaView style={{ flex: 1 }}>
           <TouchableOpacity style={{ paddingLeft: 30 }} onPress={() => this.props.navigation.goBack()} >

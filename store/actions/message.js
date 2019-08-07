@@ -1,6 +1,7 @@
 import firebase from '../../config/firebase';
 import { orderBy } from 'lodash'
 
+// TODO: need to work on push notifications as GCM support removed for Android
 export const addMessage = (id, text) => {
   return (dispatch, getState) => {
     const { uid, photo, username } = getState().user
