@@ -9,7 +9,7 @@
   "dependencies": {
     "expo": "^32.0.0",
     "firebase": "5.11.1",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "react": "16.5.0",
     "react-native": "^0.57.1",
     "react-navigation": "^3.11.0",
